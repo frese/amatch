@@ -2,6 +2,24 @@
 #include "pair.h"
 #include <ctype.h>
 
+/* Ruby 1.8 compatibility */
+
+#ifndef RSTRING_PTR
+#define RSTRING_PTR(str) RSTRING(str)->ptr
+#endif
+
+#ifndef RSTRING_LEN
+#define RSTRING_LEN(str) RSTRING(str)->len
+#endif
+
+#ifndef RFLOAT_VALUE
+#define RFLOAT_VALUE(flt) RFLOAT(str)->value
+#endif
+
+#ifndef RARRAY_LEN
+#define RARRAY_LEN(ary) RARRAY(ary)->len
+#endif
+
 /*
  * Document-method: pattern
  *
@@ -64,10 +82,10 @@ static void type##_pattern_set(type *amatch, VALUE pattern)     \
 {                                                               \
     Check_Type(pattern, T_STRING);                              \
     free(amatch->pattern);                                      \
-    amatch->pattern_len = RSTRING(pattern)->len;                \
+    amatch->pattern_len = RSTRING_LEN(pattern);                 \
     amatch->pattern = ALLOC_N(char, amatch->pattern_len);       \
-    MEMCPY(amatch->pattern, RSTRING(pattern)->ptr, char,        \
-        RSTRING(pattern)->len);                                 \
+    MEMCPY(amatch->pattern, RSTRING_PTR(pattern), char,         \
+        RSTRING_LEN(pattern));                                  \
 }                                                               \
 static VALUE rb_##type##_pattern(VALUE self)                    \
 {                                                               \
@@ -82,16 +100,16 @@ static VALUE rb_##type##_pattern_set(VALUE self, VALUE pattern) \
 }
 
 #define DEF_ITERATE_STRINGS(type)                                   \
-static VALUE type##_iterate_strings(type *amatch, VALUE strings,     \
-    VALUE (*match_function) (type *amatch, VALUE strings))        \
+static VALUE type##_iterate_strings(type *amatch, VALUE strings,    \
+    VALUE (*match_function) (type *amatch, VALUE strings))          \
 {                                                                   \
     if (TYPE(strings) == T_STRING) {                                \
         return match_function(amatch, strings);                     \
     } else {                                                        \
         Check_Type(strings, T_ARRAY);                               \
         int i;                                                      \
-        VALUE result = rb_ary_new2(RARRAY(strings)->len);           \
-        for (i = 0; i < RARRAY(strings)->len; i++) {                \
+        VALUE result = rb_ary_new2(RARRAY_LEN(strings));            \
+        for (i = 0; i < RARRAY_LEN(strings); i++) {                 \
             VALUE string = rb_ary_entry(strings, i);                \
             if (TYPE(string) != T_STRING) {                         \
                 rb_raise(rb_eTypeError,                             \
@@ -132,7 +150,7 @@ VALUE function(VALUE self, VALUE value)                                 \
             obj = rb_funcall(obj, id_to_f, 0, 0);               \
         else                                                    \
             Check_Type(obj, T_FLOAT)
-#define FLOAT2C(obj) RFLOAT(obj)->value
+#define FLOAT2C(obj) RFLOAT_VALUE(obj)
 
 #define CAST2BOOL(obj)                  \
     if (obj == Qfalse || obj == Qnil)   \
@@ -143,14 +161,14 @@ VALUE function(VALUE self, VALUE value)                                 \
 #define C2BOOL(obj) (obj ? Qtrue : Qfalse)
 
 #define OPTIMIZE_TIME                                   \
-    if (amatch->pattern_len < RSTRING(string)->len) {   \
+    if (amatch->pattern_len < RSTRING_LEN(string)) {   \
         a_ptr = amatch->pattern;                        \
         a_len = amatch->pattern_len;                    \
-        b_ptr = RSTRING(string)->ptr;                   \
-        b_len = RSTRING(string)->len;                   \
+        b_ptr = RSTRING_PTR(string);                    \
+        b_len = RSTRING_LEN(string);                    \
     } else {                                            \
-        a_ptr = RSTRING(string)->ptr;                   \
-        a_len = RSTRING(string)->len;                   \
+        a_ptr = RSTRING_PTR(string);                    \
+        a_len = RSTRING_LEN(string);                    \
         b_ptr = amatch->pattern;                        \
         b_len = amatch->pattern_len;                    \
     }
@@ -158,8 +176,8 @@ VALUE function(VALUE self, VALUE value)                                 \
 #define DONT_OPTIMIZE                                   \
         a_ptr = amatch->pattern;                        \
         a_len = amatch->pattern_len;                    \
-        b_ptr = RSTRING(string)->ptr;                   \
-        b_len = RSTRING(string)->len;                   \
+        b_ptr = RSTRING_PTR(string);                    \
+        b_len = RSTRING_LEN(string);                   \
 
 /*
  * C structures of the Amatch classes
@@ -1099,8 +1117,8 @@ static VALUE rb_PairDistance_match(int argc, VALUE *argv, VALUE self)
     } else {
         Check_Type(strings, T_ARRAY);
         int i;
-        result = rb_ary_new2(RARRAY(strings)->len);
-        for (i = 0; i < RARRAY(strings)->len; i++) {
+        result = rb_ary_new2(RARRAY_LEN(strings));
+        for (i = 0; i < RARRAY_LEN(strings); i++) {
             VALUE string = rb_ary_entry(strings, i);
             if (TYPE(string) != T_STRING) {
                 rb_raise(rb_eTypeError,
