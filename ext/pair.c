@@ -1,13 +1,27 @@
 #include "pair.h"
 
+/* Ruby 1.8 compatibility */
+
+#ifndef RSTRING_PTR
+#define RSTRING_PTR(str) RSTRING(str)->ptr
+#endif
+
+#ifndef RSTRING_LEN
+#define RSTRING_LEN(str) RSTRING(str)->len
+#endif
+
+#ifndef RARRAY_LEN
+#define RARRAY_LEN(ary) RARRAY(ary)->len
+#endif
+
 #define DEBUG 0
 
 static int predict_length(VALUE tokens)
 {
     int i, l, result;
-    for (i = 0, result = 0; i < RARRAY(tokens)->len; i++) {
+    for (i = 0, result = 0; i < RARRAY_LEN(tokens); i++) {
         VALUE t = rb_ary_entry(tokens, i);
-        l = RSTRING(t)->len - 1;
+        l = RSTRING_LEN(t) - 1;
         if (l > 0) result += l;
     }
     return result;
@@ -21,10 +35,10 @@ PairArray *PairArray_new(VALUE tokens)
     MEMZERO(pairs, Pair, len);
     pair_array->pairs = pairs;
     pair_array->len = len;
-    for (i = 0, k = 0; i < RARRAY(tokens)->len; i++) {
+    for (i = 0, k = 0; i < RARRAY_LEN(tokens); i++) {
         VALUE t = rb_ary_entry(tokens, i);
-        char *string = RSTRING(t)->ptr;
-        for (j = 0; j < RSTRING(t)->len - 1; j++) {
+        char *string = RSTRING_PTR(t);
+        for (j = 0; j < RSTRING_LEN(t) - 1; j++) {
             pairs[k].fst = string[j];
             pairs[k].snd = string[j + 1];
             pairs[k].status = PAIR_ACTIVE;
